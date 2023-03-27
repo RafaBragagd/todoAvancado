@@ -1,5 +1,4 @@
-/*----------------------Novo codigo--------------------*/
-
+//---------------------seletores-----------------------
 const todoList = document.querySelector("#todo-list")
 const todoForm = document.querySelector("#todo-form")
 const todoTitle = document.querySelector("#todo-title")
@@ -28,13 +27,13 @@ const editPriority = document.querySelector("#select-priority-edit")
 const btnCancel = document.querySelector("#btn_cancel")
 const editSubmit = document.querySelector("#btn_submit_edit")
 
-
+//--------------------Variaveis-----------------------
 let open = todoList
 let todoEdit
 let listStorage = []
 let listcategory = []
 
-//Configuração do Flatpickr
+//-------------Configuração do Flatpickr-------------
 const flatinput = flatpickr(todoOvertime, {
     enableTime: true,
     clickOpens: false,
@@ -42,15 +41,14 @@ const flatinput = flatpickr(todoOvertime, {
     dateFormat: "d/m/Y, H:i",
     minDate: new Date(),
     defaultDate: inXHours(1)
-});
+})
 const flatinputEdit = flatpickr(editOvertime, {
     enableTime: true,
     clickOpens: false,
     locale: "pt",
     dateFormat: "d/m/Y, H:i",
     minDate: new Date(),
-});
-
+})
 todoOvertime.addEventListener('click', () => {
     
     if(flatinput.isOpen){
@@ -72,7 +70,8 @@ todoForm.addEventListener('change', () => {
         flatinput.setDate(inXHours(1))
     }
 })
-//Configuração das classes
+
+//-----------Configuração das classes-------------
 class setTarefa {
     constructor(titulo, prioridade, categoria, tags, dataConclusao, notas = "", status = "pending", dataConcluido = new Date(), id = null) {
         this.id = id === null ? parseInt(localStorage.getItem("idTarefa")) + 1 : id //pega o id da localstorage e soma 1 para a próxima tarefa
@@ -90,11 +89,166 @@ class setTarefa {
     }
 }
   
-//Funções
-function inXHours(addHour){
-    let dateObj = new Date()
-    dateObj.setHours(dateObj.getHours() + addHour)
-    return dateObj
+//------------------Funções----------------------
+//Criar tarefas
+function cadastroReset(){
+    todoTitle.value = ""
+    todoCategory.selectedIndex = 0
+    todoTags.value = ""
+    todoPriority.selectedIndex = 0
+    flatinput.setDate(inXHours(1))
+}
+function HTMLstring(tarefa){
+    let date = new Date(tarefa.dataConclusao)
+    let todoString = `
+    <div class="cabecalho">
+        <h2>${tarefa.titulo}<span class="selectbox priority ${tarefa.prioridade}">
+            <span class="selected-value">${prioritySelector(tarefa.prioridade)}</span>
+            <ul class="options">
+                <li data-value="baixa" class="priority-option">Baixa</li>
+                <li data-value="media" class="priority-option">Media</li>
+                <li data-value="alta" class="priority-option">Alta</li>
+            </ul>
+        </span></h2>
+        <div class="selectbox status">
+            <span class="selected-value">${statusSelector(tarefa.status)}</span>
+            <ul class="options">
+                <li data-value="pending" class="option">Pendente</li>
+                <li data-value="progress" class="option">Andamento</li>
+                <li data-value="done" class="option">Concluido</li>
+            </ul>
+        </div>
+    </div>
+    <div class="info">
+        <span class="basic"><p class="category">${tarefa.categoria}</p><p class="origem">${tarefa.dataCriacao}</p></span>
+        <span class="tag"><h5>Tags:</h5><p>${tarefa.tags}</p></span>
+        <span class="overtime"><h5>Data Limite: </h5><p>${`${date.toLocaleDateString()}, ${date.getHours()}:${date.getMinutes()}`}</p></span>
+        <span class="conclusion"><h5>Concluido: </h5><p>${tarefa.dataConcluido}</p></span>
+    </div>
+    <div class="tools">
+        <textarea type="text" class="notes">${tarefa.notas}</textarea>
+        <button class="btn-notes">Notas</button>
+        <button class="btn-edit">Editar</button>
+        <button class="btn-delete">Deletar</button>
+    </div>
+    `
+    return todoString
+}
+function criarTarefa(index){
+    tarefa = listStorage[index]
+    const todo = document.createElement("li")
+    todo.classList.add("todo")
+    todo.classList.add(`${tarefa.status}`)
+    id = "todo" + tarefa.id
+    todo.id = id
+    
+    todo.innerHTML = HTMLstring(tarefa)
+    todoList.appendChild(todo)
+
+    const todoHTML = document.querySelector(`#${id}`)
+    const notes = todoHTML.querySelector(".notes")
+    notes.addEventListener("change", (e)=> {
+        parent = (e.target.parentNode).parentNode
+        id = (parent.id).slice(4)
+        const tarefaEncontrado = listStorage.find(objeto => objeto.id === parseInt(id));
+        tarefaEncontrado.notas = e.target.value
+        localStorage.setItem('listStorage', JSON.stringify(listStorage))
+    })
+    localStorage.setItem('listStorage', JSON.stringify(listStorage))
+}
+//Criar categorias
+function criarCategoria(index){
+    let option = document.createElement('option')
+    option.value = listcategory[index]
+    option.text = listcategory[index]
+    todoCategory.appendChild(option)
+    option = option.cloneNode(true)
+    select.appendChild(option)
+    option = option.cloneNode(true)
+    editCategory.appendChild(option)
+    const li = document.createElement('li')
+    const liHTML = `<p>${listcategory[index]}</p> <button class="btnRemove" data-value="${listcategory[index]}"><i class="fa-solid fa-trash"></button></i>`
+    li.innerHTML = liHTML
+    categoryList.appendChild(li) 
+}
+//Editar tarefas
+function editarTarefa(tarefa){
+    tarefa.titulo = editTitle.value
+    tarefa.tags = editTags.value
+    tarefa.categoria = editCategory.value
+    tarefa.dataConclusao = flatpickr.parseDate(editOvertime.value, "d/m/Y, H:i")
+    tarefa.prioridade = editPriority.value
+
+    let HTML = HTMLstring(tarefa)
+    todoEdit.innerHTML = HTML
+
+    localStorage.setItem('listStorage', JSON.stringify(listStorage))
+}
+function populaEdit(index){
+    const tarefa = listStorage[index]
+    let indice = 0
+    editTitle.value = tarefa.titulo
+    editTags.value = tarefa.tags
+    for (let i = 0; i < editCategory.options.length; i++) {
+        if (editCategory.options[i].value === tarefa.categoria) {
+          indice = i
+          break;
+        }
+    }
+    editCategory.selectedIndex = indice
+    flatinputEdit.setDate(tarefa.dataConclusao)
+    for (let i = 0; i < editPriority.options.length; i++) {
+        if (editPriority.options[i].value === tarefa.prioridade) {
+          indice = i
+          break;
+        }
+    }
+    editPriority.selectedIndex = indice
+}
+
+//Selects customizados
+function prioritySelector(selected){
+    let select
+    if(selected === "baixa"){
+        select = "3"
+    } else if(selected === "media"){
+        select = "2"
+    } else {
+        select = "1"
+    }
+    return select
+}
+function statusSelector(selected){
+    let select
+    if(selected === "pending"){
+        select = "Pendente"
+
+    } else if(selected === "progress"){
+        select = "Andamento"
+    } else {
+        select = "Concluido"
+    }
+    return select
+}
+
+//Ferramentas
+function buscaTodos(text) {
+    const todos = document.querySelectorAll(".todo")
+
+    todos.forEach((todo) => {
+        const todoTitle = todo.querySelector("h2")
+        const todoTag = (todo.querySelector(".tag")).querySelector("p")
+        const todoCat = (todo.querySelector(".basic")).querySelector(".category")
+        let tagText = todoTag.innerText.toLowerCase()
+        let todoText = todoTitle.innerText.toLowerCase()
+        let cateText = todoCat.innerText.toLowerCase()
+
+        if((todoText.includes(text))||(tagText.includes(text))||cateText.includes(text)) {
+            todo.classList.remove("hide")
+        } else {
+            todo.classList.add("hide")
+        }
+    })
 }
 function filterTodo(text) {
     const todos = document.querySelectorAll(".todo")
@@ -139,137 +293,31 @@ function filterTodo(text) {
         })
     }
 }
-function buscaTodos(text) {
-    const todos = document.querySelectorAll(".todo")
-
-    todos.forEach((todo) => {
-        const todoTitle = todo.querySelector("h2")
-        const todoTag = (todo.querySelector(".tag")).querySelector("p")
-        const todoCat = (todo.querySelector(".basic")).querySelector(".category")
-        let tagText = todoTag.innerText.toLowerCase()
-        let todoText = todoTitle.innerText.toLowerCase()
-        let cateText = todoCat.innerText.toLowerCase()
-
-        if((todoText.includes(text))||(tagText.includes(text))||cateText.includes(text)) {
-            todo.classList.remove("hide")
+//Ordenador
+function ordenador(){
+    const allTodoList = todoList.querySelectorAll(".todo")
+    allTodoList.forEach((todo) => {
+        id = (todo.id).slice(4)
+        const index = listStorage.findIndex(objeto => objeto.id === parseInt(id));
+        const tarefa = listStorage[index]
+        if(!(tarefa.status === "done")){
+            if(tarefa.prioridade === "baixa"){
+                todo.style.order = 2
+            } else if(tarefa.prioridade === "media"){
+                todo.style.order = 1
+            } else {
+                todo.style.order = 0
+            }
         } else {
-            todo.classList.add("hide")
+            todo.style.order = 99
         }
     })
 }
-function cadastroReset(){
-    todoTitle.value = ""
-    todoCategory.selectedIndex = 0
-    todoTags.value = ""
-    todoPriority.selectedIndex = 0
-    flatinput.setDate(inXHours(1))
-}
-function prioritySelector(selected){
-    let select
-    if(selected === "baixa"){
-        select = "3"
-    } else if(selected === "media"){
-        select = "2"
-    } else {
-        select = "1"
-    }
-    return select
-}
-function statusSelector(selected){
-    let select
-    if(selected === "pending"){
-        select = "Pendente"
-
-    } else if(selected === "progress"){
-        select = "Andamento"
-    } else {
-        select = "Concluido"
-    }
-    return select
-}
-function HTMLstring(tarefa){
-    let date = new Date(tarefa.dataConclusao)
-    let todoString = `
-    <div class="cabecalho">
-        <h2>${tarefa.titulo}<span class="selectbox priority ${tarefa.prioridade}">
-            <span class="selected-value">${prioritySelector(tarefa.prioridade)}</span>
-            <ul class="options">
-                <li data-value="baixa" class="priority-option">Baixa</li>
-                <li data-value="media" class="priority-option">Media</li>
-                <li data-value="alta" class="priority-option">Alta</li>
-            </ul>
-        </span></h2>
-        <div class="selectbox status">
-            <span class="selected-value">${statusSelector(tarefa.status)}</span>
-            <ul class="options">
-                <li data-value="pending" class="option">Pendente</li>
-                <li data-value="progress" class="option">Andamento</li>
-                <li data-value="done" class="option">Concluido</li>
-            </ul>
-        </div>
-    </div>
-    <div class="info">
-        <span class="basic"><p class="category">${tarefa.categoria}</p><p class="origem">${tarefa.dataCriacao}</p></span>
-        <span class="tag"><h5>Tags:</h5><p>${tarefa.tags}</p></span>
-        <span class="overtime"><h5>Data Limite: </h5><p>${`${date.toLocaleDateString()}, ${date.getHours()}:${date.getMinutes()}`}</p></span>
-        <span class="conclusion"><h5>Concluido: </h5><p>${tarefa.dataConclusao}</p></span>
-    </div>
-    <div class="tools">
-        <textarea type="text" class="notes">${tarefa.notas}</textarea>
-        <button class="btn-notes">Notas</button>
-        <button class="btn-edit">Editar</button>
-        <button class="btn-delete">Deletar</button>
-    </div>
-    `
-    return todoString
-}
-function criarTarefa(index){
-    tarefa = listStorage[index]
-    const todo = document.createElement("li")
-    todo.classList.add("todo")
-    todo.classList.add(`${tarefa.status}`)
-    id = "todo" + tarefa.id
-    todo.id = id
-    
-    todo.innerHTML = HTMLstring(tarefa)
-    todoList.appendChild(todo)
-
-    const todoHTML = document.querySelector(`#${id}`)
-    const notes = todoHTML.querySelector(".notes")
-    notes.addEventListener("change", (e)=> {
-        parent = (e.target.parentNode).parentNode
-        id = (parent.id).slice(4)
-        const tarefaEncontrado = listStorage.find(objeto => objeto.id === parseInt(id));
-        tarefaEncontrado.notas = e.target.value
-        localStorage.setItem('listStorage', JSON.stringify(listStorage))
-    })
-    localStorage.setItem('listStorage', JSON.stringify(listStorage))
-}
-function editarTarefa(tarefa){
-    tarefa.titulo = editTitle.value
-    tarefa.tags = editTags.value
-    tarefa.categoria = editCategory.value
-    tarefa.dataConclusao = flatpickr.parseDate(editOvertime.value, "d/m/Y, H:i")
-    tarefa.prioridade = editPriority.value
-
-    let HTML = HTMLstring(tarefa)
-    todoEdit.innerHTML = HTML
-
-    localStorage.setItem('listStorage', JSON.stringify(listStorage))
-}
-function criarCategoria(index){
-    let option = document.createElement('option')
-    option.value = listcategory[index]
-    option.text = listcategory[index]
-    todoCategory.appendChild(option)
-    option = option.cloneNode(true)
-    select.appendChild(option)
-    option = option.cloneNode(true)
-    editCategory.appendChild(option)
-    const li = document.createElement('li')
-    const liHTML = `<p>${listcategory[index]}</p> <button class="btnRemove" data-value="${listcategory[index]}"><i class="fa-solid fa-trash"></button></i>`
-    li.innerHTML = liHTML
-    categoryList.appendChild(li) 
+//Outros
+function inXHours(addHour){
+    let dateObj = new Date()
+    dateObj.setHours(dateObj.getHours() + addHour)
+    return dateObj
 }
 
 function toggleForm() {
@@ -277,33 +325,9 @@ function toggleForm() {
     todoForm.classList.toggle("hide")
     divTodoList.classList.toggle("hide")
 }
-function populaEdit(index){
-    const tarefa = listStorage[index]
-    let indice = 0
-    editTitle.value = tarefa.titulo
-    editTags.value = tarefa.tags
-    for (let i = 0; i < editCategory.options.length; i++) {
-        if (editCategory.options[i].value === tarefa.categoria) {
-          indice = i
-          break;
-        }
-    }
-    editCategory.selectedIndex = indice
-    flatinputEdit.setDate(tarefa.dataConclusao)
-    for (let i = 0; i < editPriority.options.length; i++) {
-        if (editPriority.options[i].value === tarefa.prioridade) {
-          indice = i
-          break;
-        }
-    }
-    editPriority.selectedIndex = indice
-}
 
-if (!localStorage.getItem('idTarefa')){
-    localStorage.setItem('idTarefa', -1)
-}
-
-//todo list
+//---------------------eventos----------------------
+//Adiciona a tarefa
 todoForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -317,7 +341,10 @@ todoForm.addEventListener("submit", (e) => {
         criarTarefa(listStorage.length - 1)
         cadastroReset()
     }
+    ordenador()
 })
+
+//Formulario de criação de categorias
 todoAddCat.addEventListener("click", () => {
     categoryForm.classList.toggle("active")
 })
@@ -334,6 +361,25 @@ btnCategoryAdd.addEventListener("click", () => {
 closeCategory.addEventListener("click", ()=>{
     categoryForm.classList.toggle("active")
 })
+
+//Ferramentas
+select.addEventListener("change", (e) => {
+    const value = select.value
+    filterTodo(value)
+})
+search.addEventListener("submit", (e) => {
+    e.preventDefault()
+})
+searchInput.addEventListener("input", (e) => {
+    const text = searchInput.value
+    buscaTodos(text.toLowerCase())
+})
+eraseBtn.addEventListener("click", (e) =>{
+    searchInput.value = ""
+    buscaTodos("")
+})
+
+//Editar tarefas
 btnCancel.addEventListener("click", ()=> {
     toggleForm()
 })
@@ -346,10 +392,11 @@ editForm.addEventListener("submit", (e) => {
     
     editarTarefa(listStorage[indexEncontrado])
     toggleForm()
+    ordenador()
 })
-//Configuração das funcionalidades do ToDo
+
+//Configuração das funcionalidades das tarefas
 document.addEventListener('click', function(e) {
-    //Abre e fecha os select customizados
     if (e.target.classList.contains('selectbox')) {
         if (open != e.target){
             open.classList.remove("open")
@@ -392,6 +439,7 @@ document.addEventListener('click', function(e) {
 
         localStorage.setItem('listStorage', JSON.stringify(listStorage))
         open.classList.remove("open")
+        ordenador()
 
     //Seleciona as opções de prioridade
     }else if(e.target.classList.contains('priority-option')){
@@ -418,6 +466,7 @@ document.addEventListener('click', function(e) {
         tarefaEncontrado.prioridade = e.target.dataset.value
         localStorage.setItem('listStorage', JSON.stringify(listStorage))
         open.classList.remove("open")
+        ordenador()
 
     //abre e fecha as notas das tarefas
     }else if((e.target.classList.contains('btn-notes'))){
@@ -458,21 +507,9 @@ document.addEventListener('click', function(e) {
         open.classList.remove("open")
     }
 })
-select.addEventListener("change", (e) => {
-    const value = select.value
-    filterTodo(value)
-})
-search.addEventListener("submit", (e) => {
-    e.preventDefault()
-})
-searchInput.addEventListener("input", (e) => {
-    const text = searchInput.value
-    buscaTodos(text.toLowerCase())
-})
-eraseBtn.addEventListener("click", (e) =>{
-    searchInput.value = ""
-    buscaTodos("")
-})
+
+
+//Função que ativa no carregamento da pagina
 document.addEventListener("DOMContentLoaded", function() {
     listStorage = JSON.parse(localStorage.getItem("listStorage"))
     let index = 0
@@ -486,4 +523,8 @@ document.addEventListener("DOMContentLoaded", function() {
         criarCategoria(index)
         index++
     })
+    if (!localStorage.getItem('idTarefa')){
+        localStorage.setItem('idTarefa', -1)
+    }
+    ordenador()
 })
