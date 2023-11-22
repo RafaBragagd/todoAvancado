@@ -2,6 +2,7 @@
 # Task List
 
 O site abaixo foi criado para apresentar os conceitos e usos do HTML, CSS e javascript, assim como a conceitos como o design responsivo se adaptando as telas.
+Disponivel em: https://graceful-strudel-261be8.netlify.app
 
 
 ## Funcionalidades
